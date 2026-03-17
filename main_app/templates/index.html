@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photobooth</title>
+    <!-- Use a cute, hand-drawn or clean sans-serif font for the aesthetic -->
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- Cropper JS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+</head>
+<body>
+
+    <!-- SCREEN 1: LANDING -->
+    <div id="screen-landing" class="screen active">
+        <div class="booth-exterior">
+            <div class="sign-top">
+                <h1>PHOTOBOOTH</h1>
+            </div>
+            <div class="booth-body">
+                <div class="featured-strips-box">
+                    <div class="featured-strips">
+                        <div class="mock-strip s1"></div>
+                        <div class="mock-strip s2"></div>
+                        <div class="mock-strip s3"></div>
+                        <div class="mock-strip s4"></div>
+                        <div class="mock-strip s5"></div>
+                    </div>
+                    <div class="featured-text">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="arrow-up" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                        <span>featured<br>strips</span>
+                    </div>
+                </div>
+
+                <div class="coin-slot">
+                    <div class="slot-dot1"></div>
+                    <div class="slot-dot2"></div>
+                    <div class="slot-line"></div>
+                </div>
+
+                <div class="curtain-section">
+                    <div class="curtain"></div>
+                    <button id="btn-enter" class="btn-handdrawn">
+                        enter &rarr;
+                    </button>
+                    <div class="stool"></div>
+                </div>
+            </div>
+        </div>
+        <div class="footer-credits">
+            made by Naman 
+            <a href="https://instagram.com/naman.singh01" target="_blank" rel="noopener noreferrer" class="ig-link" title="@naman.singh01">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                </svg>
+            </a>
+        </div>
+        <div class="footer-links">
+            <a href="#" class="footer-link" data-modal="modal-privacy">Privacy Policy</a>
+            <a href="#" class="footer-link" data-modal="modal-faq">FAQ</a>
+            <a href="#" class="footer-link" data-modal="modal-about">About Me</a>
+            <a href="#" class="footer-link" data-modal="modal-contact">Contact Me</a>
+        </div>
+    </div>
+
+    <!-- SCREEN 2: BOOTH CAPTURE -->
+    <div id="screen-booth" class="screen">
+        <div class="booth-interior">
+            <div class="eye-level">
+                <label>eye<br>level</label>
+                <svg width="30" height="20" viewBox="0 0 30 20" fill="none" stroke="black" stroke-width="3" stroke-linecap="round"><path d="M2 10h24M20 2l8 8-8 8"/></svg>
+            </div>
+            
+            <div class="camera-frame-wrapper">
+                <div class="camera-frame" style="width: 100%; height: 100%; position: relative;">
+                    <!-- VIEW 1: SELECTION -->
+                    <div id="view-selection" class="frame-view active">
+                        <button id="btn-mode-take" class="btn-box">take photo <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg></button>
+                        <button id="btn-mode-upload" class="btn-box">upload photo <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg></button>
+                    </div>
+
+                    <!-- VIEW 2: CAMERA -->
+                    <div id="view-camera" class="frame-view hidden">
+                        <video id="video-feed" autoplay playsinline></video>
+                        <div id="countdown-display" class="hidden">3</div>
+                        <div id="flash" class="hidden"></div>
+                        
+                        <div class="strip-overlay">
+                            <div class="strip-slot" id="slot-1"></div>
+                            <div class="strip-slot" id="slot-2"></div>
+                            <div class="strip-slot" id="slot-3"></div>
+                            <div class="strip-slot" id="slot-4"></div>
+                        </div>
+                    </div>
+
+                    <!-- VIEW 3: UPLOAD -->
+                    <div id="view-upload" class="frame-view hidden">
+                        <div class="upload-grid">
+                            <label class="upload-slot" for="upload-1">
+                                <input type="file" id="upload-1" accept="image/*" class="hidden">
+                                <div class="upload-content"><span class="plus">+</span><br>Picture 1</div>
+                                <div class="upload-preview" id="up-preview-1"></div>
+                            </label>
+                            <label class="upload-slot" for="upload-2">
+                                <input type="file" id="upload-2" accept="image/*" class="hidden">
+                                <div class="upload-content"><span class="plus">+</span><br>Picture 2</div>
+                                <div class="upload-preview" id="up-preview-2"></div>
+                            </label>
+                            <label class="upload-slot" for="upload-3">
+                                <input type="file" id="upload-3" accept="image/*" class="hidden">
+                                <div class="upload-content"><span class="plus">+</span><br>Picture 3</div>
+                                <div class="upload-preview" id="up-preview-3"></div>
+                            </label>
+                            <label class="upload-slot" for="upload-4">
+                                <input type="file" id="upload-4" accept="image/*" class="hidden">
+                                <div class="upload-content"><span class="plus">+</span><br>Picture 4</div>
+                                <div class="upload-preview" id="up-preview-4"></div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Hidden canvas elements for capturing -->
+                    <canvas id="capture-canvas" class="hidden"></canvas>
+                </div>
+            </div>
+
+            <div class="price-badge">
+                <div class="badge-content">
+                    <b>$0</b>
+                    <hr>
+                    <span>4 pics</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <div class="filter-options">
+                <button class="filter-btn active" data-filter="none">Normal</button>
+                <button class="filter-btn" data-filter="bw">B&W</button>
+                <button class="filter-btn" data-filter="sepia">Sepia</button>
+                <button class="filter-btn" data-filter="vintage">Vintage</button>
+                <button class="filter-btn" data-filter="blush">Blush</button>
+            </div>
+
+            <div id="instructions-selection" class="instructions-panel">
+                <div class="step" style="flex:1; justify-content: center; align-items: center; border-right: none;">
+                    <p style="font-size: 1.2rem; text-align: center;">Wait! Choose how you want to make your photostrip inside the frame first. 📸</p>
+                </div>
+            </div>
+
+            <div id="instructions-camera" class="instructions-panel hidden">
+                <div class="step">
+                    <b>1</b>
+                    <p>Choose a cool filter preset from above</p>
+                </div>
+                <div class="step">
+                    <b>2</b>
+                    <p>Adjust your pose and get ready for 4 snaps</p>
+                </div>
+                <div class="step">
+                    <b>3</b>
+                    <p>Press the button to take photo and wait</p>
+                </div>
+                <div class="step-btn">
+                    <span>click here📸</span>
+                    <button class="btn-capture" id="btn-take-photo">
+                        <div class="btn-inner-green"></div>
+                    </button>
+                    <div class="coin-slot-small"></div>
+                </div>
+            </div>
+
+            <div id="instructions-upload" class="instructions-panel hidden">
+                <div class="step">
+                    <b>1</b>
+                    <p>Select filter, then upload 4 pics</p>
+                </div>
+                <div class="step">
+                    <b>2</b>
+                    <p>Crop them to perfectly fit the frame</p>
+                </div>
+                <div class="step">
+                    <b>3</b>
+                    <p>Generate your aesthetic photostrip!</p>
+                </div>
+                <div class="step-btn">
+                    <span>build it✨</span>
+                    <button class="btn-capture" id="btn-generate-upload" disabled style="opacity: 0.5;">
+                        <div class="btn-inner-green" style="background: #E1306C; border-color: #fff;"></div>
+                    </button>
+                    <div class="coin-slot-small"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCREEN 3: PROCESSING -->
+    <div id="screen-processing" class="screen">
+        <div class="processing-container">
+            <div class="delivery-sign">
+                <p>DELIVERED<br>HERE IN</p>
+                <div class="sec-box">
+                    <span id="process-timer">3</span>
+                    <br>SECONDS
+                </div>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+            </div>
+            
+            <div class="pickup-slot-frame">
+                <div class="pickup-slot-hole">
+                    <div id="animating-strip" class="mock-strip final">
+                        <img id="print-slot-img" src="" alt="strip">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCREEN 4: RESULT / PICKUP -->
+    <div id="screen-pickup" class="screen">
+        <div class="result-container" style="position: relative; margin-top: 40px; justify-content: center;">
+            <button id="btn-prev-frame" style="background:none; border:none; font-size:3rem; cursor:pointer; color:#1a1a1a; transition: transform 0.2s; padding: 10px;">&lang;</button>
+
+            <!-- Aesthetic hint: Your photostrip -->
+            <div class="aesthetic-hint" style="position: absolute; top: -50px; left: 10%; font-family: 'Caveat', cursive; font-size: 2.2rem; font-weight: 700; color: #2c2929; transform: rotate(-5deg); pointer-events: none; z-index: 10; display: flex; flex-direction: column; align-items: center;">
+                <span>your photostrip!</span>
+                <svg width="40" height="40" viewBox="0 0 100 100" fill="none" stroke="#2c2929" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" style="margin-top: -10px; margin-left: 20px;">
+                    <path d="M 30 10 C 60 10, 80 40, 50 80" />
+                    <path d="M 35 70 L 50 80 L 65 65" />
+                </svg>
+            </div>
+
+            <div class="final-strip-view" style="position: relative;">
+                <img id="final-image" src="" alt="Your Photobooth Strip" />
+                
+                <!-- Aesthetic hint: Cut here -->
+                <div class="aesthetic-hint" style="position: absolute; top: 12px; right: 55px; font-family: 'Caveat', cursive; font-size: 1.8rem; font-weight: 700; color: #2c2929; transform: rotate(-8deg); pointer-events: none; z-index: 10; display: flex; align-items: center; gap: 8px;">
+                    <span>cut here!</span>
+                    <svg width="35" height="25" viewBox="0 0 100 100" fill="none" stroke="#2c2929" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M 10 50 C 30 20, 60 20, 60 50 C 60 80, 40 80, 40 50 C 40 20, 70 30, 90 50" />
+                        <path d="M 70 35 L 90 50 L 75 65" />
+                    </svg>
+                </div>
+                
+                <button id="btn-cut-photos" title="Cut & Download Single Photos" style="position: absolute; top: 10px; right: 10px; background: white; border: 3px solid #1a1a1a; border-radius: 50%; width: 40px; height: 40px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0 #1a1a1a; transition: transform 0.2s; z-index: 10;">✂️</button>
+            </div>
+            <button id="btn-next-frame" style="background:none; border:none; font-size:3rem; cursor:pointer; color:#1a1a1a; transition: transform 0.2s; padding: 10px;">&rang;</button>
+            
+            <div class="action-buttons" style="position: relative;">
+                <!-- Aesthetic hint: Tag me -->
+                <div class="aesthetic-hint" style="position: absolute; top: 75px; left: -110px; font-family: 'Caveat', cursive; font-size: 2.2rem; font-weight: 700; color: #2c2929; transform: rotate(-10deg); pointer-events: none; z-index: 10; display: flex; flex-direction: row; align-items: center; gap: 8px;">
+                    <span>tag me :)</span>
+                    <svg width="35" height="25" viewBox="0 0 100 100" fill="none" stroke="#2c2929" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" style="transform: rotate(20deg); margin-top: 15px;">
+                        <path d="M 10 50 C 30 20, 60 20, 60 50 C 60 80, 40 80, 40 50 C 40 20, 70 30, 90 50" />
+                        <path d="M 70 35 L 90 50 L 75 65" />
+                    </svg>
+                </div>
+
+                <button id="btn-download" class="btn-handdrawn">Download PNG &downarrow;</button>
+                <button id="btn-share-ig" class="btn-handdrawn" style="background-color: #E1306C; color: white; border-color: #1a1a1a;">Share on Instagram</button>
+                <button id="btn-share-snap" class="btn-handdrawn" style="background-color: #FFFC00; color: #000; border-color: #1a1a1a;">Share on Snapchat</button>
+                <button id="btn-print" class="btn-handdrawn outline">Print &boxbox;</button>
+                <button id="btn-retake" class="btn-handdrawn outline">Take Another!</button>
+            </div>
+        </div>
+        
+        <!-- Canvas used to draw the layout of the final photo strip -->
+        <canvas id="strip-canvas" class="hidden"></canvas>
+    </div>
+
+    <!-- MODAL: CROP PHOTO -->
+    <div id="modal-crop" class="hidden modal-overlay" style="z-index: 200;">
+        <div class="modal-content" style="width: 800px; max-width: 95%;">
+            <div class="modal-header">
+                <h2 style="font-family: 'Inter', sans-serif;">✂️ Crop Photo</h2>
+                <button id="btn-close-crop" class="btn-close-info">&times;</button>
+            </div>
+            <div style="width: 100%; max-height: 60vh; background: #222; margin-bottom: 20px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                <img id="image-to-crop" src="" style="max-width: 100%; display: block;" alt="To Output Crop">
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button id="btn-cancel-crop" class="btn-handdrawn outline">Cancel</button>
+                <button id="btn-save-crop" class="btn-handdrawn">Crop & Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: SINGLE PHOTOS -->
+    <div id="modal-single-photos" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: white; padding: 20px; border-radius: 8px; border: 4px solid #1a1a1a; max-width: 90%; width: 600px; max-height: 85vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="font-family: 'Inter', sans-serif;">✂️ Single Photos</h2>
+                <button id="btn-close-modal" style="background: none; border: none; font-size: 2rem; cursor: pointer; line-height: 1;">&times;</button>
+            </div>
+            <div id="single-photos-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <!-- Filled via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- INFO MODALS -->
+    <div id="modal-info" class="hidden modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-info-title" style="font-family: 'Inter', sans-serif;"></h2>
+                <button class="btn-close-info">&times;</button>
+            </div>
+            <div id="modal-info-body" style="font-family: 'Inter', sans-serif; line-height: 1.6; font-size: 1.1rem; color: #333;">
+                <!-- Content injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', path='/js/app.js') }}"></script>
+</body>
+</html>
