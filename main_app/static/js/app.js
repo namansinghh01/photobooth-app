@@ -126,6 +126,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 audio: false 
             });
             videoFeed.srcObject = stream;
+            // Explicitly call play for mobile and in-app browsers
+            try {
+                await videoFeed.play();
+            } catch (playErr) {
+                console.error("Error playing video feed: ", playErr);
+            }
         } catch (err) {
             console.error("Error accessing camera: ", err);
             alert("Please allow camera access to use the photobooth!");
