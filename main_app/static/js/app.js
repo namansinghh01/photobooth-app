@@ -479,36 +479,84 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Actions
     btnDownload.addEventListener('click', () => {
-        const link = document.createElement('a');
-        link.download = `photobooth_strip_${Date.now()}.png`;
-        link.href = finalImage.src;
-        link.click();
+        const ua = navigator.userAgent || navigator.vendor || window.opera;
+        const isInApp = (ua.indexOf("Instagram") > -1) || (ua.indexOf("Snapchat") > -1) || (ua.indexOf("FBAV") > -1);
+        
+        try {
+            const blob = dataURItoBlob(finalImage.src);
+            const blobUrl = URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.download = `photobooth_strip_${Date.now()}.png`;
+            link.href = blobUrl;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+            
+            // If it's an in-app browser, we also show a small helpful tip just in case the silent download failed
+            if (isInApp) {
+                setTimeout(() => {
+                    alert("If the download didn't start automatically: Tap and hold the image, then select 'Save Image'.");
+                }, 1500);
+            }
+        } catch (err) {
+            console.error("Download failed", err);
+            if (isInApp) {
+                alert("To save your photo: Tap and hold the image, then select 'Save Image' or 'Download'.");
+            }
+        }
     });
 
+    function dataURItoBlob(dataURI) {
+        let byteString = atob(dataURI.split(',')[1]);
+        let mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+        let ab = new ArrayBuffer(byteString.length);
+        let ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+        }
+        return new Blob([ab], {type: mimeString});
+    }
+
     async function shareImage(platformText) {
+        const ua = navigator.userAgent || navigator.vendor || window.opera;
+        const isInApp = (ua.indexOf("Instagram") > -1) || (ua.indexOf("Snapchat") > -1) || (ua.indexOf("FBAV") > -1);
+
         if (navigator.share) {
             try {
-                // Convert base64 to File object
-                const res = await fetch(finalImage.src);
-                const blob = await res.blob();
+                const blob = dataURItoBlob(finalImage.src);
                 const file = new File([blob], 'photostrip.png', { type: 'image/png' });
 
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
                     await navigator.share({
                         title: 'My Photostrip',
-                        text: `Check out my new photostrip! Sharing to ${platformText}`,
+                        text: `Check out my new photostrip!`,
                         files: [file]
                     });
                 } else {
-                    alert(`Your browser doesn't support file sharing. Please download it to share on ${platformText}.`);
+                    if (isInApp) {
+                        alert(`Direct sharing is blocked inside this app. To share on ${platformText}, please long-press the image to save it first!`);
+                    } else {
+                        alert(`Your browser doesn't support direct file sharing. Please download it to share on ${platformText}.`);
+                    }
                 }
             } catch (err) {
                 console.log('Share failed or was cancelled', err);
+                if (err.name !== 'AbortError') {
+                    if (isInApp) {
+                         alert(`Share failed. Please long-press the image to save it, then upload to ${platformText}.`);
+                    }
+                }
             }
         } else {
-            alert(`Web Share API is not supported in your browser. Please download the image to share on ${platformText}.`);
+            if (isInApp) {
+                alert(`Direct sharing is not supported in this app. Please long-press the image to save it, then upload to ${platformText}!`);
+            } else {
+                alert(`Web Share API is not supported in your browser. Please download the image to share on ${platformText}.`);
+            }
         }
     }
 
@@ -586,10 +634,33 @@ document.addEventListener('DOMContentLoaded', () => {
             dBtn.style.fontSize = '1rem';
             dBtn.innerHTML = 'Download &downarrow;';
             dBtn.onclick = () => {
-                const link = document.createElement('a');
-                link.download = `single_photo_${index+1}_${Date.now()}.png`;
-                link.href = imgData;
-                link.click();
+                const ua = navigator.userAgent || navigator.vendor || window.opera;
+                const isInApp = (ua.indexOf("Instagram") > -1) || (ua.indexOf("Snapchat") > -1) || (ua.indexOf("FBAV") > -1);
+                
+                try {
+                    const blob = dataURItoBlob(imgData);
+                    const blobUrl = URL.createObjectURL(blob);
+                    
+                    const link = document.createElement('a');
+                    link.download = `single_photo_${index+1}_${Date.now()}.png`;
+                    link.href = blobUrl;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+                    
+                    if (isInApp) {
+                        setTimeout(() => {
+                            alert("If the download didn't start automatically: Tap and hold the image, then select 'Save Image'.");
+                        }, 1500);
+                    }
+                } catch (err) {
+                    console.error("Single photo download failed", err);
+                    if (isInApp) {
+                        alert("To save this photo: Tap and hold the image, then select 'Save Image'.");
+                    }
+                }
             };
 
             wrapper.appendChild(img);
