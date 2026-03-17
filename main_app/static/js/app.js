@@ -117,11 +117,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Camera Init
     async function startCamera() {
         try {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert("Camera access is restricted or not supported in this app/browser. Please open this page directly in Safari or Chrome via the top-right menu.");
+                return;
+            }
             stream = await navigator.mediaDevices.getUserMedia({ 
                 video: { 
-                    facingMode: "user",
-                    width: { ideal: 720 },
-                    height: { ideal: 960 }
+                    facingMode: "user"
+                    // we remove exact ideal constraints to prevent OverconstrainedError on picky Android cameras inside WebViews
                 }, 
                 audio: false 
             });
@@ -134,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (err) {
             console.error("Error accessing camera: ", err);
-            alert("Please allow camera access to use the photobooth!");
+            alert("Camera access was denied or failed! Please allow permissions or open directly in Chrome/Safari using the app's top menu.");
         }
     }
 
@@ -484,31 +487,43 @@ document.addEventListener('DOMContentLoaded', () => {
         const isInApp = (ua.indexOf("Instagram") > -1) || (ua.indexOf("Snapchat") > -1) || (ua.indexOf("FBAV") > -1);
         
         try {
-            const blob = dataURItoBlob(finalImage.src);
-            const blobUrl = URL.createObjectURL(blob);
+            forceDownloadViaServer(finalImage.src, `photobooth_strip_${Date.now()}.png`);
             
-            const link = document.createElement('a');
-            link.download = `photobooth_strip_${Date.now()}.png`;
-            link.href = blobUrl;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-            
-            // If it's an in-app browser, we also show a small helpful tip just in case the silent download failed
+            // Helpful tip if native download isn't fully visible
             if (isInApp) {
                 setTimeout(() => {
-                    alert("If the download didn't start automatically: Tap and hold the image, then select 'Save Image'.");
-                }, 1500);
+                    alert("If the download prompt didn't appear, you can also Tap and Hold the image to save it directly.");
+                }, 2000);
             }
         } catch (err) {
             console.error("Download failed", err);
             if (isInApp) {
-                alert("To save your photo: Tap and hold the image, then select 'Save Image' or 'Download'.");
+                alert("To save your photo: Tap and hold the image, then select 'Save Image'.");
             }
         }
     });
+
+    function forceDownloadViaServer(dataURI, filename) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/api/download-direct';
+        
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'image_data';
+        input.value = dataURI;
+        
+        const nameInput = document.createElement('input');
+        nameInput.type = 'hidden';
+        nameInput.name = 'filename';
+        nameInput.value = filename || 'photo.png';
+        
+        form.appendChild(input);
+        form.appendChild(nameInput);
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+    }
 
     function dataURItoBlob(dataURI) {
         let byteString = atob(dataURI.split(',')[1]);
@@ -638,22 +653,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const isInApp = (ua.indexOf("Instagram") > -1) || (ua.indexOf("Snapchat") > -1) || (ua.indexOf("FBAV") > -1);
                 
                 try {
-                    const blob = dataURItoBlob(imgData);
-                    const blobUrl = URL.createObjectURL(blob);
-                    
-                    const link = document.createElement('a');
-                    link.download = `single_photo_${index+1}_${Date.now()}.png`;
-                    link.href = blobUrl;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    
-                    setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+                    forceDownloadViaServer(imgData, `single_photo_${index+1}_${Date.now()}.png`);
                     
                     if (isInApp) {
                         setTimeout(() => {
-                            alert("If the download didn't start automatically: Tap and hold the image, then select 'Save Image'.");
-                        }, 1500);
+                            alert("If the download prompt didn't appear, you can also Tap and Hold the image to save it directly.");
+                        }, 2000);
                     }
                 } catch (err) {
                     console.error("Single photo download failed", err);
