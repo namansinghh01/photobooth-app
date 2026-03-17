@@ -472,8 +472,6 @@ document.addEventListener('DOMContentLoaded', () => {
             finalImage.src = finalDataUrl;
             printSlotImg.src = finalDataUrl;
             
-            // Only fire upload if it's the classic generated or first generated time
-            // to avoid spamming the local endpoint, but we can just let it hit the API.
             fetch('/api/upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -482,12 +480,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    btnDownload.addEventListener('click', () => {
+    btnDownload.addEventListener('click', async () => {
         const ua = navigator.userAgent || navigator.vendor || window.opera;
         const isInApp = (ua.indexOf("Instagram") > -1) || (ua.indexOf("Snapchat") > -1) || (ua.indexOf("FBAV") > -1);
         
+        btnDownload.disabled = true;
+        const originalText = btnDownload.innerText;
+        btnDownload.innerText = "Downloading...";
+
         try {
-            forceDownloadViaServer(finalImage.src, `photobooth_strip_${Date.now()}.png`);
+            await forceDownloadViaServer(finalImage.src);
             
             // Helpful tip if native download isn't fully visible
             if (isInApp) {
@@ -499,30 +501,41 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("Download failed", err);
             if (isInApp) {
                 alert("To save your photo: Tap and hold the image, then select 'Save Image'.");
+            } else {
+                alert("Download failed. Please try again or tap and hold the image to save.");
             }
+        } finally {
+            btnDownload.disabled = false;
+            btnDownload.innerText = originalText;
         }
     });
 
-    function forceDownloadViaServer(dataURI, filename) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '/api/download-direct';
-        
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'image_data';
-        input.value = dataURI;
-        
-        const nameInput = document.createElement('input');
-        nameInput.type = 'hidden';
-        nameInput.name = 'filename';
-        nameInput.value = filename || 'photo.png';
-        
-        form.appendChild(input);
-        form.appendChild(nameInput);
-        document.body.appendChild(form);
-        form.submit();
-        document.body.removeChild(form);
+    async function forceDownloadViaServer(dataURI) {
+        try {
+            // Step 1: Upload image data to server via JSON
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image_data: dataURI })
+            });
+
+            if (!res.ok) {
+                throw new Error(`Server returned status ${res.status}`);
+            }
+
+            const data = await res.json();
+            
+            // Step 2: Navigate to GET download URL
+            if (data.status === 'success' && data.filename) {
+                const downloadUrl = '/api/download/' + encodeURIComponent(data.filename);
+                window.location.href = downloadUrl;
+            } else {
+                throw new Error("Server did not return a valid filename for download.");
+            }
+        } catch (err) {
+            console.error('Download preparation failed:', err);
+            throw err;
+        }
     }
 
     function dataURItoBlob(dataURI) {
@@ -648,12 +661,16 @@ document.addEventListener('DOMContentLoaded', () => {
             dBtn.style.padding = '8px 16px';
             dBtn.style.fontSize = '1rem';
             dBtn.innerHTML = 'Download &downarrow;';
-            dBtn.onclick = () => {
+            dBtn.onclick = async () => {
                 const ua = navigator.userAgent || navigator.vendor || window.opera;
                 const isInApp = (ua.indexOf("Instagram") > -1) || (ua.indexOf("Snapchat") > -1) || (ua.indexOf("FBAV") > -1);
                 
+                dBtn.disabled = true;
+                const originalText = dBtn.innerHTML;
+                dBtn.innerHTML = "Downloading...";
+
                 try {
-                    forceDownloadViaServer(imgData, `single_photo_${index+1}_${Date.now()}.png`);
+                    await forceDownloadViaServer(imgData);
                     
                     if (isInApp) {
                         setTimeout(() => {
@@ -664,7 +681,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.error("Single photo download failed", err);
                     if (isInApp) {
                         alert("To save this photo: Tap and hold the image, then select 'Save Image'.");
+                    } else {
+                        alert("Download failed. Please tap and hold the image to save.");
                     }
+                } finally {
+                    dBtn.disabled = false;
+                    dBtn.innerHTML = originalText;
                 }
             };
 

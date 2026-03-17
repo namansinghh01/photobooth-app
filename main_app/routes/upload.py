@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Form
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -40,24 +40,29 @@ async def upload_photo(data: ImageData, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(db_photo)
         
-        return {"status": "success", "message": "Photo saved to database properly!", "photo_id": db_photo.id}
+        return {
+            "status": "success", 
+            "message": "Photo saved to database properly!", 
+            "photo_id": db_photo.id,
+            "filename": filename
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/api/download-direct")
-async def download_direct(image_data: str = Form(...), filename: str = Form("photostrip.png")):
+@router.get("/api/download/{filename}")
+async def get_download(filename: str):
     try:
-        if "," in image_data:
-            base64_img = image_data.split(",")[1]
-        else:
-            base64_img = image_data
-            
-        image_bytes = base64.b64decode(base64_img)
-        
-        # Ensure filename is safe
         safe_filename = "".join(c for c in filename if c.isalnum() or c in "._-")
         if not safe_filename:
             safe_filename = "photo.png"
+            
+        file_path = os.path.join(os.path.dirname(__file__), "..", "static", "images", safe_filename)
+        
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail="File not found")
+            
+        with open(file_path, "rb") as f:
+            image_bytes = f.read()
             
         return Response(content=image_bytes, media_type="image/png", headers={
             "Content-Disposition": f'attachment; filename="{safe_filename}"'
