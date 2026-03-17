@@ -490,20 +490,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             await forceDownloadViaServer(finalImage.src);
-            
-            // Helpful tip if native download isn't fully visible
-            if (isInApp) {
-                setTimeout(() => {
-                    alert("If the download prompt didn't appear, you can also Tap and Hold the image to save it directly.");
-                }, 2000);
-            }
         } catch (err) {
             console.error("Download failed", err);
-            if (isInApp) {
-                alert("To save your photo: Tap and hold the image, then select 'Save Image'.");
-            } else {
-                alert("Download failed. Please try again or tap and hold the image to save.");
-            }
+            alert("Download failed. Please try again.");
         } finally {
             btnDownload.disabled = false;
             btnDownload.innerText = originalText;
@@ -549,51 +538,72 @@ document.addEventListener('DOMContentLoaded', () => {
         return new Blob([ab], {type: mimeString});
     }
 
-    async function shareImage(platformText) {
+    async function shareImage(platformText, buttonElement) {
         const ua = navigator.userAgent || navigator.vendor || window.opera;
         const isInApp = (ua.indexOf("Instagram") > -1) || (ua.indexOf("Snapchat") > -1) || (ua.indexOf("FBAV") > -1);
 
-        if (navigator.share) {
-            try {
-                const blob = dataURItoBlob(finalImage.src);
-                const file = new File([blob], 'photostrip.png', { type: 'image/png' });
+        buttonElement.disabled = true;
+        const originalText = buttonElement.innerText;
+        buttonElement.innerText = "Processing...";
 
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+            const blob = dataURItoBlob(finalImage.src);
+            const file = new File([blob], 'photostrip.png', { type: 'image/png' });
+
+            // 1. Try Native Web Share API first
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
                     await navigator.share({
                         title: 'My Photostrip',
                         text: `Check out my new photostrip!`,
                         files: [file]
                     });
-                } else {
-                    if (isInApp) {
-                        alert(`Direct sharing is blocked inside this app. To share on ${platformText}, please long-press the image to save it first!`);
-                    } else {
-                        alert(`Your browser doesn't support direct file sharing. Please download it to share on ${platformText}.`);
-                    }
-                }
-            } catch (err) {
-                console.log('Share failed or was cancelled', err);
-                if (err.name !== 'AbortError') {
-                    if (isInApp) {
-                         alert(`Share failed. Please long-press the image to save it, then upload to ${platformText}.`);
-                    }
+                    return; // Success
+                } catch (err) {
+                    if (err.name === 'AbortError') return; // User cancelled, do nothing
+                    console.log('Native share failed, falling back...', err);
                 }
             }
-        } else {
+
+            // 2. Fallback: Copy to Clipboard (Great for Instagram Stories / Snapchat)
+            buttonElement.innerText = "Copying...";
+            try {
+                if (navigator.clipboard && window.ClipboardItem) {
+                    const item = new ClipboardItem({ 'image/png': blob });
+                    await navigator.clipboard.write([item]);
+                    alert(`Copied to clipboard! 📋\n\nYou can now open ${platformText} and "Paste" this image into your story or chat!`);
+                    return; // Success
+                }
+            } catch (clipErr) {
+                console.log('Clipboard copy failed, falling back to download...', clipErr);
+            }
+
+            // 3. Final Fallback: Force Download
+            buttonElement.innerText = "Downloading...";
+            await forceDownloadViaServer(finalImage.src);
+            alert(`Direct sharing to ${platformText} isn't supported here. We've downloaded the image for you instead! You can now manually upload it to ${platformText}.`);
+            
             if (isInApp) {
-                alert(`Direct sharing is not supported in this app. Please long-press the image to save it, then upload to ${platformText}!`);
-            } else {
-                alert(`Web Share API is not supported in your browser. Please download the image to share on ${platformText}.`);
+                setTimeout(() => {
+                     alert(`If the download didn't start automatically: Tap and Hold the image to save it to your phone.`);
+                }, 2000);
             }
+            
+        } catch (err) {
+             console.error('Share completely failed:', err);
+             alert(`Could not share or download. Please manually Tap and Hold the image to save it.`);
+        } finally {
+             buttonElement.disabled = false;
+             buttonElement.innerText = originalText;
         }
     }
 
     btnShareIg.addEventListener('click', () => {
-        shareImage('Instagram');
+        shareImage('Instagram', btnShareIg);
     });
 
     btnShareSnap.addEventListener('click', () => {
-        shareImage('Snapchat');
+        shareImage('Snapchat', btnShareSnap);
     });
 
     btnPrint.addEventListener('click', () => {
@@ -671,19 +681,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 try {
                     await forceDownloadViaServer(imgData);
-                    
-                    if (isInApp) {
-                        setTimeout(() => {
-                            alert("If the download prompt didn't appear, you can also Tap and Hold the image to save it directly.");
-                        }, 2000);
-                    }
                 } catch (err) {
                     console.error("Single photo download failed", err);
-                    if (isInApp) {
-                        alert("To save this photo: Tap and hold the image, then select 'Save Image'.");
-                    } else {
-                        alert("Download failed. Please tap and hold the image to save.");
-                    }
+                    alert("Download failed. Please try again.");
                 } finally {
                     dBtn.disabled = false;
                     dBtn.innerHTML = originalText;
